@@ -1,4 +1,4 @@
-#![allow(dead_code, unused)]
+#![allow(unused)]
 mod args;
 mod chunk;
 mod chunk_type;

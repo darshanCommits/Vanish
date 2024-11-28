@@ -1,9 +1,9 @@
+#![allow(unused)]
 use std::{fmt::Display, str::FromStr};
-
 use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq)]
-enum ChunkTypeError {
+pub enum ChunkTypeError {
     #[error("Only ASCII characters can be used.")]
     NonAsciiCharFound,
     #[error("Length of a chunk must be 4 bytes.")]
@@ -14,28 +14,30 @@ enum ChunkTypeError {
 
 // DAMM: A Rust String is just a Vec<u8> whose bytes have been validated as UTF-8 ~ [pngme book]
 
-/// todo!()
 #[derive(Debug, PartialEq)]
-struct ChunkType {
+pub struct ChunkType {
     // u8 because ascii
-    bytes: [u8; 4],
+    pub bytes: [u8; 4],
 }
 
 impl ChunkType {
+    pub fn bytes(&self) -> [u8; 4] {
+        self.bytes
+    }
     /// Checks Whether the all 4 bytes is valid char or not
-    fn is_valid_byte(&self) -> bool {
-        self.bytes.iter().all(|x| x.is_ascii_alphabetic())
+    pub fn is_valid_byte(&self) -> bool {
+        self.bytes().iter().all(|x| x.is_ascii_alphabetic())
     }
 
     // Should have read documentation clearly, it specifically said about the reserved bit part but ig im dumb
     /// Should always return true, if not, consider it a bug.
-    fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.is_reserved_bit_valid() && self.is_valid_byte()
     }
 
     /// Checks if `this` chunk is necessary to display the PNG
-    fn is_critical(&self) -> bool {
-        self.bytes
+    pub fn is_critical(&self) -> bool {
+        self.bytes()
             .first()
             .expect("This should not have happened. Report the bug.")
             .is_ascii_uppercase()
@@ -44,25 +46,24 @@ impl ChunkType {
     /// ## Not part of public API.
     /// Not even sure what this is for.
     fn is_public(&self) -> bool {
-        self.bytes
+        self.bytes()
             .get(1)
             .expect("This should not have happened. Report the bug.")
             .is_ascii_uppercase()
     }
 
     /// Reserved for future iterations of PNG spec.
-    fn is_reserved_bit_valid(&self) -> bool {
-        self.bytes
+    pub fn is_reserved_bit_valid(&self) -> bool {
+        self.bytes()
             .get(2)
             .expect("This should not have happened. Report the bug.")
             .is_ascii_uppercase()
     }
 
-    /// ## Not part of public API.
     /// Irrelevant for decoders but useful in img editors tells whether
     /// the chunk is okay to be copied for the modified version of the img
-    fn is_safe_to_copy(&self) -> bool {
-        self.bytes
+    pub fn is_safe_to_copy(&self) -> bool {
+        self.bytes()
             .get(3)
             .expect("This should not have happened. Report the bug.")
             .is_ascii_lowercase()
@@ -107,7 +108,7 @@ impl Display for ChunkType {
         write!(
             f,
             "{}",
-            self.bytes.map(char::from).iter().collect::<String>()
+            self.bytes().map(char::from).iter().collect::<String>()
         )
     }
 }
@@ -147,7 +148,7 @@ mod tests {
         let expected = [82, 117, 83, 116];
         let actual = ChunkType::try_from([82, 117, 83, 116]).unwrap();
 
-        assert_eq!(expected, actual.bytes);
+        assert_eq!(expected, actual.bytes());
     }
 
     #[test]
