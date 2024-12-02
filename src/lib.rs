@@ -7,5 +7,5 @@ mod png;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
 }
