@@ -9,8 +9,8 @@ pub enum ChunkTypeError {
 	NonAsciiCharFound,
 	#[error("Length of a chunk must be 4 bytes.")]
 	InvalidLength,
-	#[error("Need to know why??")]
-	SomeOtherThing,
+	#[error("Failed to convert slice to ChunkType")]
+	TryFromSliceError,
 	#[error("Length and reserved bit should be valid. This shouldn't occur in the first place")]
 	InvalidChunkType,
 }
@@ -41,11 +41,10 @@ impl ChunkType {
 	// reserved bit part but ig im dumb
 	// I have changed from reference impl of bool to result.
 	/// Should always return true.
-	pub fn is_valid(&self) -> Result<(), ChunkTypeError> {
-		if !(self.is_reserved_bit_valid() && self.is_valid_byte()?) {
-			return Err(ChunkTypeError::InvalidChunkType);
-		}
-		Ok(())
+	pub fn is_valid(&self) -> Result<bool, ChunkTypeError> {
+		self.is_reserved_bit_valid()?;
+		self.is_valid_byte()?;
+		Ok(true)
 	}
 
 	/// Checks if `this` chunk is necessary to display the PNG
@@ -65,12 +64,12 @@ impl ChunkType {
 			.is_ascii_uppercase()
 	}
 
-	/// Reserved for future iterations of PNG spec.
-	pub fn is_reserved_bit_valid(&self) -> bool {
-		self.bytes()
-			.get(2)
-			.expect("This should not have happened. Report the bug.")
-			.is_ascii_uppercase()
+	/// Mandate by PNG spec, it should be true otherwise chunk is wrong
+	pub fn is_reserved_bit_valid(&self) -> Result<bool, ChunkTypeError> {
+		match self.bytes().get(2) {
+			Some(byte) if byte.is_ascii_uppercase() => Ok(true),
+			_ => Err(ChunkTypeError::InvalidChunkType),
+		}
 	}
 
 	/// Irrelevant for decoders but useful in img editors tells whether
@@ -102,7 +101,7 @@ impl FromStr for ChunkType {
 		let bytes = s
 			.as_bytes()
 			.try_into()
-			.map_err(|_| ChunkTypeError::SomeOtherThing)?;
+			.map_err(|_| ChunkTypeError::TryFromSliceError)?;
 
 		let chunk = Self { bytes };
 		chunk.is_valid_byte()?;
@@ -113,8 +112,10 @@ impl FromStr for ChunkType {
 
 impl Display for ChunkType {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		let s = std::str::from_utf8(&self.bytes).map_err(|_| std::fmt::Error)?;
-		write!(f, "{}", s)
+		match String::from_utf8(self.bytes.into()) {
+			Ok(s) => write!(f, "{}", s),
+			Err(e) => write!(f, "{}", e),
+		}
 	}
 }
 
@@ -190,15 +191,17 @@ mod tests {
 	}
 
 	#[test]
-	pub fn test_chunk_type_is_reserved_bit_valid() {
+	pub fn test_chunk_type_is_reserved_bit_valid() -> Result<(), ChunkTypeError> {
 		let chunk = ChunkType::from_str("RuSt").unwrap();
-		assert!(chunk.is_reserved_bit_valid());
+		assert!(chunk.is_reserved_bit_valid().is_ok());
+		Ok(())
 	}
 
 	#[test]
-	pub fn test_chunk_type_is_reserved_bit_invalid() {
+	pub fn test_chunk_type_is_reserved_bit_invalid() -> Result<(), ChunkTypeError> {
 		let chunk = ChunkType::from_str("Rust").unwrap();
-		assert!(!chunk.is_reserved_bit_valid());
+		assert!(chunk.is_reserved_bit_valid().is_err());
+		Ok(())
 	}
 
 	#[test]

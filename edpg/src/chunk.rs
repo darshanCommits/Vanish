@@ -21,7 +21,7 @@ pub enum ChunkError {
 	IncorrectCrc { found_crc: u32, expected_crc: u32 },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Chunk {
 	chunk_type: ChunkType,
 	data: Vec<u8>,
@@ -117,16 +117,15 @@ impl TryFrom<&[u8]> for Chunk {
 		let (chunk_type_bytes, value) = value.split_at(Self::CHUNK_TYPE_BYTES);
 		let chunk_type_bytes: [u8; 4] = chunk_type_bytes.try_into()?;
 		let chunk_type: ChunkType = chunk_type_bytes.try_into()?;
+
+		// is it needed here? i kinda forgot
 		chunk_type.is_valid()?;
 
 		// because crc is calculated on preceeding bytes
 		let (data, value) = value.split_at(data_length as usize);
 		let (crc_bytes, _) = value.split_at(Self::CRC_LENGTH_BYTES);
 
-		let tmp = Self {
-			chunk_type,
-			data: data.into(),
-		};
+		let tmp = Self::new(chunk_type, data.into());
 
 		let found_crc = u32::from_be_bytes(crc_bytes.try_into()?);
 		let expected_crc = tmp.crc();
@@ -138,16 +137,23 @@ impl TryFrom<&[u8]> for Chunk {
 			});
 		}
 
-		Ok(Self {
-			chunk_type,
-			data: data.into(),
-		})
+		Ok(Self::new(chunk_type, data.into()))
 	}
 }
 
 impl Display for Chunk {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{}: {:?}", self.chunk_type(), self.data())
+		writeln!(
+			f,
+			"Chunk: Data_len={}, type={}, crc={}\n{}\n",
+			self.length(),
+			self.chunk_type(),
+			self.crc(),
+			match String::from_utf8(self.data().into()) {
+				Ok(s) => s,
+				Err(_) => "Only Your hidden message can be decoded.".to_owned(),
+			}
+		)
 	}
 }
 
@@ -277,7 +283,6 @@ mod tests {
 			.collect();
 
 		let chunk: Chunk = TryFrom::try_from(chunk_data.as_ref()).unwrap();
-		println!("{}", chunk);
 
 		let _chunk_string = format!("{}", chunk);
 	}

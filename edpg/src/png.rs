@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf};
 
 use crate::{
 	chunk::{Chunk, ChunkError},
@@ -20,9 +20,11 @@ pub enum PngError {
 	InvalidLength,
 	#[error("Unable to convert slice. {0}")]
 	SliceToSized(#[from] std::array::TryFromSliceError),
+	#[error("Failed to read file. {0}")]
+	FailedToRead(#[from] std::io::Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Png {
 	chunk_list: Vec<Chunk>,
 }
@@ -33,20 +35,31 @@ impl Png {
 		Self { chunk_list }
 	}
 
+	pub fn data_string_by_type(&self, chunk_type: &str) -> Option<String> {
+		let chunk_data = self.chunk_by_type(chunk_type);
+		if let Some(data) = chunk_data {
+			let a = data.data_as_string().unwrap();
+			Some(a)
+		} else {
+			None
+		}
+	}
 	pub fn from_chunks(chunks: Vec<Chunk>) -> Png {
 		Self::new(chunks)
 	}
 
 	pub fn append_chunk(&mut self, chunk: Chunk) {
-		self.chunk_list.push(chunk);
+		self.chunk_list.insert(self.chunks().len() - 1, chunk)
+	}
+
+	pub fn find_by_chunk(&self, chunk_type: &str) -> Option<usize> {
+		self.chunks()
+			.iter()
+			.position(|x| x.chunk_type().to_string() == chunk_type)
 	}
 
 	pub fn remove_first_chunk(&mut self, chunk_type: &str) -> Result<Chunk, PngError> {
-		if let Some(idx) = self
-			.chunks()
-			.iter()
-			.position(|x| x.chunk_type().to_string() == chunk_type)
-		{
+		if let Some(idx) = self.find_by_chunk(chunk_type) {
 			Ok(self.chunk_list.remove(idx))
 		} else {
 			Err(PngError::ChunkListEmpty)
@@ -126,9 +139,25 @@ impl TryFrom<&[u8]> for Png {
 	}
 }
 
+impl TryFrom<PathBuf> for Png {
+	type Error = PngError;
+
+	fn try_from(file: PathBuf) -> Result<Self, Self::Error> {
+		let file_as_bytes = std::fs::read(file)?;
+		let png = Png::try_from(file_as_bytes.as_ref())?;
+
+		Ok(png)
+	}
+}
+
 impl Display for Png {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{:?}", self.chunks())
+		let s: Vec<String> = self
+			.chunks()
+			.iter()
+			.map(|chunk| chunk.to_string())
+			.collect();
+		write!(f, "{}", s.join(""))
 	}
 }
 
