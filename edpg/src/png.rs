@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
 	chunk::{Chunk, ChunkError},
-	chunk_type::{ChunkType, ChunkTypeError},
+	chunk_type::ChunkTypeError,
 };
 use thiserror::Error;
 
@@ -33,15 +33,15 @@ impl Png {
 		Self { chunk_list }
 	}
 
-	fn from_chunks(chunks: Vec<Chunk>) -> Png {
+	pub fn from_chunks(chunks: Vec<Chunk>) -> Png {
 		Self::new(chunks)
 	}
 
-	fn append_chunk(&mut self, chunk: Chunk) {
+	pub fn append_chunk(&mut self, chunk: Chunk) {
 		self.chunk_list.push(chunk);
 	}
 
-	fn remove_first_chunk(&mut self, chunk_type: &str) -> Result<Chunk, PngError> {
+	pub fn remove_first_chunk(&mut self, chunk_type: &str) -> Result<Chunk, PngError> {
 		if let Some(idx) = self
 			.chunks()
 			.iter()
@@ -53,20 +53,20 @@ impl Png {
 		}
 	}
 
-	fn header(&self) -> &[u8; 8] {
+	pub fn header(&self) -> &[u8; 8] {
 		&Self::STANDARD_HEADER
 	}
 
-	fn chunks(&self) -> &[Chunk] {
+	pub fn chunks(&self) -> &[Chunk] {
 		&self.chunk_list
 	}
-	fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
+	pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
 		self.chunks()
 			.iter()
 			.find(|&x| x.chunk_type().to_string() == chunk_type)
 	}
 
-	fn as_bytes(&self) -> Vec<u8> {
+	pub fn as_bytes(&self) -> Vec<u8> {
 		// help me understand why this wouldn't work
 		// &Self::STANDARD_HEADER
 		// 	.iter()
@@ -139,7 +139,6 @@ mod tests {
 	use crate::chunk_type::ChunkType;
 	use core::panic;
 	use std::convert::TryFrom;
-	use std::str::FromStr;
 
 	fn testing_chunks() -> Vec<Chunk> {
 		vec![

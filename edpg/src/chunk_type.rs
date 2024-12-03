@@ -1,4 +1,3 @@
-#![allow(unused)]
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -59,7 +58,7 @@ impl ChunkType {
 
 	/// ## Not part of public API.
 	/// Not even sure what this is for.
-	fn is_public(&self) -> bool {
+	pub fn is_public(&self) -> bool {
 		self.bytes()
 			.get(1)
 			.expect("This should not have happened. Report the bug.")

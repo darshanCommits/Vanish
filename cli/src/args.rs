@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
-use clap::{command, Command, Parser, Subcommand};
+use clap::command;
+use clap::{Parser, Subcommand};
 
-use crate::chunk_type::ChunkType;
+use edpg::chunk_type::ChunkType;
 
 #[derive(Parser)]
 #[command(

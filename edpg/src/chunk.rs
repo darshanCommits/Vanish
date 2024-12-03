@@ -1,8 +1,6 @@
 // Getters are for API stability
 
 use std::fmt::Display;
-use std::io::{BufRead, Read};
-use std::str::{FromStr, Utf8Chunks};
 use std::string::FromUtf8Error;
 
 use thiserror::Error;
@@ -157,7 +155,6 @@ impl Display for Chunk {
 mod tests {
 	use super::*;
 	use crate::chunk_type::ChunkType;
-	use core::panic;
 	use std::str::FromStr;
 
 	fn testing_chunk() -> Chunk {
