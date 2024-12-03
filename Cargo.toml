@@ -1,8 +1,2 @@
-[package]
-name = "edpg"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-crc = "3.2.1"
-thiserror = "2.0.3"
+[workspace]
+members = ["edpg", "cli"]

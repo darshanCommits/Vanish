@@ -16,7 +16,7 @@ pub enum PngError {
 	InvalidChunk(#[from] ChunkError),
 	#[error("Unknown Chunk Type")]
 	InvalidChunkType(#[from] ChunkTypeError),
-	#[error("Invalid length")]
+	#[error("Invalid length. Must contain the std header for PNG")]
 	InvalidLength,
 	#[error("Unable to convert slice. {0}")]
 	SliceToSized(#[from] std::array::TryFromSliceError),
@@ -97,18 +97,16 @@ impl TryFrom<&[u8]> for Png {
 				return Err(PngError::InvalidLength);
 			}
 
-			println!("Chunk type bytes: {:?}", &bytes[4..8]);
-			println!("Chunk length: {}", chunk_data_len);
-			println!("Total chunk length: {}", total_chunk_len);
 			let (chunk, rem) = bytes.split_at(total_chunk_len);
 			let chunk = Chunk::try_from(chunk)?;
 
 			Ok((chunk, rem))
 		}
-		//
+
 		if value.len() < 8 {
-			return Err(PngError::InvalidHeader);
+			return Err(PngError::InvalidLength);
 		}
+
 		let (header, mut chunk_bytes) = value.split_at(8);
 
 		if header != Self::STANDARD_HEADER {
